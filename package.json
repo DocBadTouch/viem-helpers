@@ -1,0 +1,17 @@
+{
+  "name": "veim-helpers",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "lerna bootstrap",
+    "build": "lerna run build --parallel",
+    "test": "lerna run test --parallel",
+    "lint": "lerna run lint --parallel"
+  },
+  "devDependencies": {
+    "lerna": "^4.0.0"
+  }
+}

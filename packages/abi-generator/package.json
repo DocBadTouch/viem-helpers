@@ -1,0 +1,26 @@
+{
+  "name": "abi-generator",
+  "version": "1.0.0",
+  "description": "Simple script to convert JSON ABI files to TypeScript constants for use with viem or ethers.js",
+  "main": "dist/abi-to-typescript.js",
+  "scripts": {
+    "start": "node dist/abi-to-typescript.js",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "author": "DocBadTouch",
+  "license": "ISC",
+  "devDependencies": {
+    "fs-extra": "^10.0.0",
+    "glob": "^7.1.7",
+    "typescript": "^4.4.3"
+  },
+  "dependencies": {
+    "@types/fs-extra": "^11.0.1",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^20.2.5"
+  },
+  "bin": {
+    "generate": "dist/abi-to-typescript.js"
+  }
+}
