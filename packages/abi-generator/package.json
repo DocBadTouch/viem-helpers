@@ -1,7 +1,7 @@
 {
   "name": "abi-generator",
   "private": false,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "licenses": [
     {
       "type": "ISC",
@@ -28,6 +28,6 @@
     "@types/node": "^20.2.5"
   },
   "bin": {
-    "generate": "./dist/abi-to-typescript.js"
+    "abi-generator": "./dist/abi-to-typescript.js"
   }
 }
