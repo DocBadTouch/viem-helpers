@@ -61,14 +61,22 @@ files.forEach((file) => {
         functionOutputs[entry.name] = entry.outputs.map((output: any) => {
           if (output.type === "address") {
             return "`0x${string}`";
+          } else if (output.type === "address[]") {
+            return "`0x${string}`[]";
           } else if (output.type === "uint256") {
             return "bigint";
+          } else if (output.type === "uint256[]") {
+            return "bigint[]";
           } else if (output.type === "uint8") {
             return "number | bigint";
+          } else if (output.type === "uint8[]") {
+            return "(number | bigint)[]";
           } else if (output.type === "bool") {
             return "boolean";
+          } else if (output.type === "bool[]") {
+            return "boolean[]";
           } else {
-            return output.type;
+            return `any /**${output.type}*/`;
           }
         });
       }
@@ -99,20 +107,26 @@ files.forEach((file) => {
     const inputs = functionObject.inputs.map((input: any) => {
       if (input.type === "address") {
         return (input.name || "address") + ": `0x${string}`";
+      } else if (input.type === "address[]") {
+        return (input.name || "addresses") + ": `0x${string}`[]";
       } else if (input.type === "uint256") {
         return (input.name || "amount") + ": bigint";
+      } else if (input.type === "uint256[]") {
+        return (input.name || "amounts") + ": bigint[]";
       } else if (input.type === "uint8") {
         return (input.name || "amount") + ": number | bigint";
+      } else if (input.type === "uint8[]") {
+        return (input.name || "amounts") + ": (number | bigint)[]";
       } else if (input.type === "bool") {
         return (input.name || "bool") + ": boolean";
       } else {
-        return input.name + `: ${input.type}`;
+        return input.name + `: any /**${input.type}*/`;
       }
     });
     const outputs = functionOutputs[key] || ["void"];
-    return `export type ${key}_type = (${inputs.join(
-      ", "
-    )}) => Promise<${outputs.join(", ")}>;`;
+    return `export type ${key}_type = (${inputs.join(", ")}) => Promise<${
+      outputs.length > 1 ? `[${outputs.join(", ")}]` : outputs[0]
+    }>;`;
   });
 
   // output event types
@@ -121,14 +135,22 @@ files.forEach((file) => {
     const inputs = eventObject.inputs.map((input: any) => {
       if (input.type === "address") {
         return (input.name || "address") + ": `0x${string}`";
+      } else if (input.type === "address[]") {
+        return (input.name || "addresses") + ": `0x${string}`[]";
       } else if (input.type === "uint256") {
         return (input.name || "amount") + ": bigint";
+      } else if (input.type === "uint256[]") {
+        return (input.name || "amounts") + ": bigint[]";
       } else if (input.type === "uint8") {
         return (input.name || "amount") + ": number | bigint";
+      } else if (input.type === "uint8[]") {
+        return (input.name || "amounts") + ": (number | bigint)[]";
       } else if (input.type === "bool") {
         return (input.name || "bool") + ": boolean";
+      } else if (input.type === "bool[]") {
+        return (input.name || "bools") + ": boolean[]";
       } else {
-        return input.name + `: ${input.type}`;
+        return input.name + `: any /**${input.type}*/`;
       }
     });
     return `export type ${key}_type = (${inputs.join(", ")}) => Promise<void>;`;

@@ -28,6 +28,6 @@
     "@types/node": "^20.2.5"
   },
   "bin": {
-    "generate": "node dist/abi-to-typescript.js"
+    "generate": "./dist/abi-to-typescript.js"
   }
 }
