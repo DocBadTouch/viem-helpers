@@ -1,13 +1,7 @@
 {
   "name": "abi-generator",
   "private": false,
-  "version": "1.0.2",
-  "licenses": [
-    {
-      "type": "ISC",
-      "url": "https://opensource.org/licenses/ISC"
-    }
-  ],
+  "version": "1.0.3",
   "description": "Simple script to convert JSON ABI files to TypeScript constants for use with viem or ethers.js",
   "main": "dist/abi-to-typescript.js",
   "scripts": {
