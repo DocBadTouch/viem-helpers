@@ -2,9 +2,43 @@
 import * as fs from "fs-extra";
 import * as glob from "glob";
 import * as path from "path";
+import * as yarg from "yargs";
+import { AbiEvent, AbiFunction, AbiInput, AbiOutput, Arguments } from "./types";
+import {
+  RawAbiTypeGenericNameMap,
+  RawAbiTypeToTypeScriptTypeMap,
+} from "./maps";
 
-const inputDirectory = path.resolve(process.cwd(), process.argv[2]);
-const outputDirectory = path.resolve(process.cwd(), process.argv[3]);
+const argv = yarg
+  .usage("Usage: $0 [options]")
+  .option("inputpath", {
+    alias: "i",
+    describe: "Path to the input JSON ABI files",
+    demandOption: true, // The option is required
+    type: "string",
+  })
+  .option("outputpath", {
+    alias: "o",
+    describe: "Path to the output directory for TypeScript files",
+    demandOption: true, // The option is required
+    type: "string",
+  })
+  .option("genViemReads", {
+    alias: "gvr",
+    describe: "Generate view reads",
+    demandOption: false, // The option is required
+    type: "boolean",
+  })
+  .option("genViemWrites", {
+    alias: "gvw",
+    describe: "Generate view writes",
+    demandOption: false, // The option is required
+    type: "boolean",
+  })
+  .help()
+  .alias("help", "h").argv as Arguments;
+const inputDirectory = argv.inputpath as string;
+const outputDirectory = argv.outputpath as string;
 
 if (!inputDirectory || !outputDirectory) {
   console.error("Please provide both input and output directories.");
@@ -37,7 +71,7 @@ files.forEach((file) => {
   const { abi } = JSON.parse(content);
   //catch error
   if (!abi) {
-    console.error(`No ABI found in ${file}`);
+    console.error(`No ABI found in ${file} - skipping file`);
     //skip file
     return;
   }
@@ -50,43 +84,55 @@ files.forEach((file) => {
   )} as const;`;
 
   // Create a separate export object for functions based on the "type" property
+  const rawAbiFunctions = abi.filter((entry: any) => entry.type === "function");
+  const rawAbiEvents = abi.filter((entry: any) => entry.type === "event");
+  const functionArray: AbiFunction[] = [];
+  const eventArray: AbiEvent[] = [];
+  const functionTypeDefs: string[] = [];
+  const eventTypeDefs: string[] = [];
   const functionsObject: { [key: string]: any } = {};
   const functionOutputs: { [key: string]: string[] } = {};
 
   const eventsObject: { [key: string]: any } = {};
+  //add a count for each entry
+  rawAbiFunctions.forEach((entry: any) => {
+    let func: AbiFunction = {
+      name: entry.name,
+      inputs: getFunctionInputs(entry.inputs),
+      outputs: getOutputs(entry.outputs),
+      stateMutability: entry.stateMutability,
+      type: entry.type,
+    };
+    functionArray.push(func);
+    functionsObject[entry.name] = entry;
+    let inputsString = func.inputs
+      .map((input) => `${input.name}: ${input.type}`)
+      .join(", ");
+    let outputsString =
+      func.outputs.length === 0
+        ? "void"
+        : func.outputs.length === 1
+        ? func.outputs[0].type
+        : `[${func.outputs.map((output) => `${output.type}`).join(", ")}]`;
 
-  abi.forEach((entry: any) => {
-    if (entry.type === "function") {
-      functionsObject[entry.name] = entry;
-      if (entry.outputs && entry.outputs.length > 0) {
-        functionOutputs[entry.name] = entry.outputs.map((output: any) => {
-          if (output.type === "address") {
-            return "`0x${string}`";
-          } else if (output.type === "address[]") {
-            return "`0x${string}`[]";
-          } else if (output.type === "uint256") {
-            return "bigint";
-          } else if (output.type === "uint256[]") {
-            return "bigint[]";
-          } else if (output.type === "uint8") {
-            return "number | bigint";
-          } else if (output.type === "uint8[]") {
-            return "(number | bigint)[]";
-          } else if (output.type === "bool") {
-            return "boolean";
-          } else if (output.type === "bool[]") {
-            return "boolean[]";
-          } else {
-            return `any /**${output.type}*/`;
-          }
-        });
-      }
-    }
+    let typeString = `export type ${entry.name}_type = (${inputsString}) => Promise<${outputsString}>;`;
+    functionTypeDefs.push(typeString);
   });
-  abi.forEach((entry: any) => {
-    if (entry.type === "event") {
-      eventsObject[entry.name] = entry;
-    }
+  rawAbiEvents.forEach((entry: any) => {
+    let func: AbiEvent = {
+      name: entry.name,
+      inputs: getFunctionInputs(entry.inputs),
+      anonymous: entry.anonymous,
+      type: entry.type,
+    };
+    eventArray.push(func);
+    eventsObject[entry.name] = entry;
+    let inputsString = func.inputs
+      .map((input) => `${input.name}: ${input.type}`)
+      .join(", ");
+
+    let typeString = `export type ${entry.name}_event_type = (${inputsString}) => Promise<void>;`;
+    eventTypeDefs.push(typeString);
   });
 
   // Convert the functions export object to a formatted string
@@ -102,68 +148,34 @@ files.forEach((file) => {
     2
   )} as const;`;
 
-  // output function types
-  const functionTypes = Object.keys(functionsObject).map((key) => {
-    const functionObject = functionsObject[key];
-    const inputs = functionObject.inputs.map((input: any) => {
-      if (input.type === "address") {
-        return (input.name || "address") + ": `0x${string}`";
-      } else if (input.type === "address[]") {
-        return (input.name || "addresses") + ": `0x${string}`[]";
-      } else if (input.type === "uint256") {
-        return (input.name || "amount") + ": bigint";
-      } else if (input.type === "uint256[]") {
-        return (input.name || "amounts") + ": bigint[]";
-      } else if (input.type === "uint8") {
-        return (input.name || "amount") + ": number | bigint";
-      } else if (input.type === "uint8[]") {
-        return (input.name || "amounts") + ": (number | bigint)[]";
-      } else if (input.type === "bool") {
-        return (input.name || "bool") + ": boolean";
-      } else {
-        return input.name + `: any /**${input.type}*/`;
-      }
-    });
-    const outputs = functionOutputs[key] || ["void"];
-    return `export type ${key}_type = (${inputs.join(", ")}) => Promise<${
-      outputs.length > 1 ? `[${outputs.join(", ")}]` : outputs[0]
-    }>;`;
-  });
-
-  // output event types
-  const eventTypes = Object.keys(eventsObject).map((key) => {
-    const eventObject = eventsObject[key];
-    const inputs = eventObject.inputs.map((input: any) => {
-      if (input.type === "address") {
-        return (input.name || "address") + ": `0x${string}`";
-      } else if (input.type === "address[]") {
-        return (input.name || "addresses") + ": `0x${string}`[]";
-      } else if (input.type === "uint256") {
-        return (input.name || "amount") + ": bigint";
-      } else if (input.type === "uint256[]") {
-        return (input.name || "amounts") + ": bigint[]";
-      } else if (input.type === "uint8") {
-        return (input.name || "amount") + ": number | bigint";
-      } else if (input.type === "uint8[]") {
-        return (input.name || "amounts") + ": (number | bigint)[]";
-      } else if (input.type === "bool") {
-        return (input.name || "bool") + ": boolean";
-      } else if (input.type === "bool[]") {
-        return (input.name || "bools") + ": boolean[]";
-      } else {
-        return input.name + `: any /**${input.type}*/`;
-      }
-    });
-    return `export type ${key}_type = (${inputs.join(", ")}) => Promise<void>;`;
-  });
-
   // Append the functions export to the output file
   fs.writeFileSync(
     outputFileName,
-    `${exportAbiString}\n\n${functionsExportString}\n\n${eventsExportString}\n\n${functionTypes.join(
+    `${exportAbiString}\n\n${functionsExportString}\n\n${eventsExportString}\n\n${functionTypeDefs.join(
       "\n"
-    )}\n\n${eventTypes.join("\n")}`
+    )}\n\n${eventTypeDefs.join("\n")}`
   );
+  if (argv.genViemReads) {
+    //generate view reads
+    const viewReads = functionArray
+      .filter((func) => func.stateMutability === "view")
+      .map((func) => {
+        let inputsString = func.inputs
+          .map((input) => `${input.name}: ${input.type}`)
+          .join(", ");
+        let outputsString =
+          func.outputs.length === 0
+            ? "void"
+            : func.outputs.length === 1
+            ? func.outputs[0].type
+            : `[${func.outputs.map((output) => `${output.type}`).join(", ")}]`;
+        return `export const ${func.name} = (${inputsString}): Promise<${outputsString}> => {
+          //TODO: implement
+        };
+        `;
+      });
+    fs.appendFileSync(outputFileName, viewReads.join("\n"));
+  }
 
   console.log(`Generated TypeScript constants in ${outputFileName}`);
 });
@@ -180,3 +192,82 @@ const indexFileContent = exportStatements.join("\n");
 fs.writeFileSync(path.join(outputDirectory, "index.ts"), indexFileContent);
 
 console.log(`Generated index.ts file in ${outputDirectory}`);
+function getFunctionInputs(inputs: any): AbiInput[] {
+  if (!inputs) {
+    return [];
+  }
+  return inputs.map((input: any, index: number) => {
+    return {
+      name:
+        input.name || RawAbiTypeGenericNameMap.get(input.type) || `arg${index}`,
+      type:
+        RawAbiTypeToTypeScriptTypeMap.get(input.type) ||
+        `any /**${input.type}*/`,
+      indexed: input.indexed,
+    };
+  });
+}
+
+function getOutputs(outputs: any): AbiOutput[] {
+  //console.log("outputs:", outputs);
+  if (!outputs || outputs.length === 0) {
+    return [];
+  }
+  return outputs.map((output: any, index: number) => {
+    if (output.type === "tuple") {
+      if (output.components) {
+        return {
+          name: getOutputName(output, index),
+          type: getTupleOutputType(output),
+        };
+      }
+    }
+    //check if tupleArray
+    if (output.type === "tuple[]") {
+      //console.log("tuple output:", output);
+      if (output.components) {
+        return {
+          name: getOutputName(output, index),
+          type: `(${getTupleOutputType(output)})[]`,
+        };
+      }
+    }
+    return {
+      name:
+        output.name ||
+        RawAbiTypeGenericNameMap.get(output.type) ||
+        `outArg${index}`,
+      type:
+        RawAbiTypeToTypeScriptTypeMap.get(output.type) ||
+        `any /**${output.type}*/`,
+    };
+  });
+}
+function getTupleOutputType(output: any) {
+  //console.log("components:", output.components);
+  return `{
+            ${output.components
+              .map((component: any, index: number) => {
+                return `${component.name || `arg${index}`}: ${
+                  RawAbiTypeToTypeScriptTypeMap.get(component.type) ||
+                  `any /**${component.type}*/`
+                }`;
+              })
+              .join(", ")}
+          } | [
+            ${output.components
+              .map((component: any, index: number) => {
+                return `${
+                  RawAbiTypeToTypeScriptTypeMap.get(component.type) ||
+                  `any /**${component.type}*/`
+                }`;
+              })
+              .join(", ")}
+          ]`;
+}
+
+function getOutputName(output: any, index: number) {
+  return (
+    output.name || RawAbiTypeGenericNameMap.get(output.type) || `outArg${index}`
+  );
+}
