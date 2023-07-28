@@ -2025,7 +2025,7 @@ export type masterVtx_type = () => Promise<`0x${string}`>;
 export type owner_type = () => Promise<`0x${string}`>;
 export type pools_type = (address: `0x${string}`) => Promise<[bigint, boolean, `0x${string}`, `0x${string}`, bigint, bigint, `0x${string}`, `0x${string}`, `0x${string}`]>;
 export type ptp_type = () => Promise<`0x${string}`>;
-export type registerPool_type = (_pid: bigint, _token: `0x${string}`, _lpAddress: `0x${string}`, receiptName: any /**string*/, receiptSymbol: any /**string*/, allocPoints: bigint) => Promise<void>;
+export type registerPool_type = (_pid: bigint, _token: `0x${string}`, _lpAddress: `0x${string}`, receiptName: string, receiptSymbol: string, allocPoints: bigint) => Promise<void>;
 export type removeFee_type = (index: bigint) => Promise<void>;
 export type removePool_type = (token: `0x${string}`) => Promise<void>;
 export type renounceOwnership_type = () => Promise<void>;

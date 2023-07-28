@@ -2527,7 +2527,7 @@ export type maxSlot_type = () => Promise<bigint>;
 export type migrate_type = (user: `0x${string}`, onlyDeposit: boolean[]) => Promise<void>;
 export type migrateFor_type = (_from: `0x${string}`, _to: `0x${string}`, onlyDeposit: boolean[]) => Promise<void>;
 export type migrated_type = (address: `0x${string}`) => Promise<boolean>;
-export type name_type = () => Promise<any /**string*/>;
+export type name_type = () => Promise<string>;
 export type owner_type = () => Promise<`0x${string}`>;
 export type pause_type = () => Promise<void>;
 export type paused_type = () => Promise<boolean>;
@@ -2541,7 +2541,7 @@ export type setWhitelistForTransfer_type = (_for: `0x${string}`, status: boolean
 export type stakeInMasterChief_type = () => Promise<void>;
 export type stakingToken_type = () => Promise<`0x${string}`>;
 export type startUnlock_type = (strategyIndex: bigint, amount: bigint, slotIndex: bigint) => Promise<void>;
-export type symbol_type = () => Promise<any /**string*/>;
+export type symbol_type = () => Promise<string>;
 export type totalLocked_type = () => Promise<bigint>;
 export type totalSupply_type = () => Promise<bigint>;
 export type totalUnlocking_type = () => Promise<bigint>;

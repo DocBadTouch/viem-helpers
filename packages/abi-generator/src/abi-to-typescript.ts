@@ -155,6 +155,18 @@ files.forEach((file) => {
       "\n"
     )}\n\n${eventTypeDefs.join("\n")}`
   );
+  let contractString = `export class ${fileName}Contract {
+    address: ${"`0x${string}`"};
+    chain: Chain;
+    constructor(
+      address: ${"`0x${string}`"},
+      chain: Chain,
+      ) {
+        this.address = address;
+        this.chain = chain;
+      }
+      `;
+
   if (argv.genViemReads) {
     //generate view reads
     const viewReads = functionArray
@@ -196,10 +208,17 @@ function getFunctionInputs(inputs: any): AbiInput[] {
   if (!inputs) {
     return [];
   }
+  let names: string[] = [];
   return inputs.map((input: any, index: number) => {
+    let name =
+      input.name || RawAbiTypeGenericNameMap.get(input.type) || `arg${index}`;
+    let nameUsed = names.includes(name);
+    if (nameUsed) {
+      name = `${name}${index}`;
+    }
+    names.push(name);
     return {
-      name:
-        input.name || RawAbiTypeGenericNameMap.get(input.type) || `arg${index}`,
+      name,
       type:
         RawAbiTypeToTypeScriptTypeMap.get(input.type) ||
         `any /**${input.type}*/`,
